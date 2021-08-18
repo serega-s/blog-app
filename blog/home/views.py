@@ -161,6 +161,7 @@ def verify(request, token):
             profile_obj.save()
 
         return redirect('/login')
+
     except Exception as e:
         print(e)
 
