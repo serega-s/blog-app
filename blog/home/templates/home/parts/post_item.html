@@ -1,0 +1,52 @@
+{% load humanize %}
+<div class="card shadow border-0 h-100">
+
+  <a href="{% url 'post_detail' post.slug %}">
+    <img
+      class="img-fluid card-img-top"
+      src="{{ post.image.url }}"
+      alt="..."
+    />
+  </a>
+  <div class="card-body">
+    <a
+      class="text-uppercase text-muted text-sm letter-spacing-2"
+      href="{% url 'post_detail' post.slug %}"
+    >
+      {{ post.user.username }}
+    </a>
+    <h5 class="my-2">
+      <a
+        class="text-dark"
+        href="{% url 'post_detail' post.slug %}"
+      >{{ post.title }}</a>
+    </h5>
+    <p class="text-gray-500 text-sm my-3">
+      <i class="far fa-clock mr-2"></i>{{ post.updated_at|naturalday }}
+      <span class="mx-1">|</span>{{ post.viewed }} views {% if post.is_draft %}<span class="mx-1">|</span>
+      <span class="fw-bold text-dark">DRAFT</span>
+      {% endif %}
+    </p>
+
+    <p class="my-2 text-muted text-sm">{{ post.description|truncatewords:15|safe }}</p>
+
+    {% if post.user == request.user %}
+    <a
+      class="btn btn-link pl-0"
+      href="{% url 'post_delete' post.id %}"
+    >Delete<i class="fa fa-trash ml-2"></i>
+    </a>
+    <a
+      class="btn btn-link pl-0"
+      href="{% url 'post_update' post.slug %}"
+    >Update<i class="fa fa-pen ml-2"></i>
+    </a>
+    {% else %}
+    <a
+      class="btn btn-link pl-0"
+      href="{% url 'post_detail' post.slug %}"
+    >Read more<i class="fa fa-long-arrow-alt-right ml-2"></i>
+    </a>
+    {% endif %}
+  </div>
+</div>

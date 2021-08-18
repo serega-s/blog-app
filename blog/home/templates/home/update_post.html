@@ -1,0 +1,55 @@
+{% extends 'home/base.html' %}
+
+
+{% block start %}
+<div class="container">
+
+  <a
+    class="btn btn-light mt-5"
+    href="{% url 'user_posts' %}"
+  >Show my posts</a>
+
+  <form
+    method="POST"
+    class="mt-5 pt-5 pb-5"
+    enctype="multipart/form-data"
+  >
+    {% csrf_token %}
+    <div class="row">
+      <div class="col-md-12">
+        <label for="title">Enter post title</label>
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Enter title"
+          value="{{ post.title }}"
+          name="title"
+        >
+      </div>
+      <div class="col-md-12">
+        <label for="title">Enter post description</label>
+        <textarea
+          class="form-control"
+          placeholder="Enter description"
+          name="description"
+        >{{ post.description }}</textarea>
+      </div>
+      <div class="col-md-12">
+        {{ form.media }}
+        {{ form.as_p}}
+      </div>
+      <div class="col-md-12">
+        <input
+          type="file"
+          class="form-control"
+          name="image"
+          value="{{ post.image.url }}"
+        >
+        <br>
+      </div>
+
+      <button class="btn btn-primary">Update Post</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

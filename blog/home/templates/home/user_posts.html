@@ -1,0 +1,33 @@
+{% extends 'home/base.html' %}
+
+
+{% block start %}
+<section class="hero-home dark-overlay mb-5"><img
+    class="bg-image"
+    src="https://images.pexels.com/photos/1761279/pexels-photo-1761279.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    alt=""
+  >
+  <div class="container py-7">
+    <div class="overlay-content text-center text-white">
+      <h1 class="display-3 text-serif font-weight-bold text-shadow mb-0">Your Posts</h1>
+    </div>
+  </div>
+</section>
+<section class="py-6">
+  <div class="container">
+    <div class="row mb-5">
+
+      {% for post in posts %}
+
+      <!-- Post item-->
+      <div class="col-lg-4 col-sm-6 mb-4 hover-animate">
+        {% include 'home/parts/post_item.html' %}
+      </div>
+      <!-- /Post item-->
+
+      {% endfor %}
+
+    </div>
+  </div>
+</section>
+{% endblock %}

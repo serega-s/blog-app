@@ -1,0 +1,221 @@
+{% extends 'home/base.html' %}
+{% load humanize %}
+
+{% block start %}
+<section class="hero-home dark-overlay mb-5"><img
+    class="bg-image"
+    src="{{ post.image.url }}"
+    alt=""
+  >
+  <div class="container py-7">
+    <div class="overlay-content text-center text-white">
+      <h1 class="display-3 text-serif font-weight-bold text-shadow mb-0">{{ post.title }}</h1>
+    </div>
+  </div>
+</section>
+<section>
+  <div class="container">
+    <div class="row">
+      <div class="col-xl-8 col-lg-10 mx-auto">
+        <p class="py-3 mb-5 text-muted text-center font-weight-light"><a href="#"><img
+              class="avatar mr-2"
+              src="https://d19m59y37dris4.cloudfront.net/directory/1-6-1/img/avatar/avatar-11.jpg"
+              alt=""
+            ></a> Written by <a
+            class="font-weight-bold"
+            href="#"
+          >{{ post.user.username }}</a><span class="mx-1">|</span> {{ post.updated_at|naturalday }}<span
+            class="mx-1">|</span><a
+            class="text-muted"
+            href="#"
+          >{{ post.viewed }} views</a></p>
+        <p class="lead mb-5">{{ post.description }}</p>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-xl-8 col-lg-10 mx-auto">
+        <div class="text-content">
+          {{ post.content|safe }}
+          <hr />
+        </div>
+        <!-- comments-->
+        <div class="mt-5">
+          {% load mptt_tags %}
+          <h6 class="text-uppercase text-muted mb-4">{{ allcomments|length }} comments</h6>
+          <!-- comment-->
+          {% recursetree allcomments %}
+          <div class="media mb-4">
+            <img
+              class="avatar avatar-lg mr-4"
+              src="https://w7.pngwing.com/pngs/831/88/png-transparent-user-profile-computer-icons-user-interface-mystique-miscellaneous-user-interface-design-smile.png"
+            >
+            <div class="media-body">
+              <h5>{{ node.user }}</h5>
+              <p class="text-uppercase text-sm text-muted">
+                <i class="far fa-clock"></i> {{ node.created_at|naturalday }}
+              </p>
+
+              <p class="text-muted">{{ node.content }}</p>
+
+              {% if node.level < 3 %}
+              <p>
+                <a
+                  class="btn btn-link text-primary"
+                  href="#"
+                  id="replyBtn"
+                  data-parent-id="{{ node.id }}"
+                  onclick="childrenCommentForm({{ node.id }})"
+                ><i class="fa fa-reply"></i> Reply
+                </a>
+              </p>
+              {% endif %}
+            </div>
+          </div>
+          {% if not node.is_leaf_node %}
+          <div class="children pl-2 pl-md-5">
+            {{ children }}
+          </div>
+          {% endif %}
+          {% endrecursetree %}
+          <!-- /comment-->
+        </div>
+        <!-- /comments-->
+        <!-- comment form-->
+        <div class="mb-5">
+          <button
+            class="btn btn-outline-primary"
+            onclick="parentCommentForm()"
+            id="openCommentForm"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#leaveComment"
+            aria-expanded="false"
+            aria-controls="leaveComment"
+          >Leave a comment</button>
+          <div
+            class="collapse mt-4"
+            id="leaveComment"
+          >
+            <h5 class="mb-4">Leave a comment</h5>
+            <form
+              class="form"
+              id="comment-form"
+              method="post"
+              action="#"
+            >
+              {% csrf_token %}
+              <div class="row">
+              </div>
+              <div class="form-group mb-4">
+                <label
+                  class="form-label"
+                  for="comment"
+                >
+                  Comment <span class="required">*</span>
+                </label>
+                <textarea
+                  class="form-control"
+                  id="comment"
+                  rows="4"
+                ></textarea>
+              </div>
+              <button
+                class="btn btn-primary"
+                id="submitCommentFormBtn"
+                type="submit"
+              ><i class="far fa-comment"></i> Comment </button>
+            </form>
+          </div>
+        </div>
+        <!-- /comment form-->
+      </div>
+
+    </div>
+    <nav aria-label="Back To Post">
+      <ul class="pagination justify-content-between mb-5">
+        <li class="page-item"><button
+            type="button"
+            class="page-link text-sm rounded"
+            onclick="javascript:history.go(-1)"
+          ><i class="fa fa-chevron-left mr-1"></i> Go Back</button>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</section>
+
+<script>
+  const submitCommentFormBtn = document.getElementById('submitCommentFormBtn')
+  function childrenCommentForm(commentId) {
+
+    window.scrollTo(0, document.body.scrollHeight)
+    document.getElementById('leaveComment').classList.toggle('show')
+
+    // if (isChildren == "True") {
+    //   isChildren = true
+    // } else if (isChildren == "False") {
+    //   isChildren = false
+    // }
+
+    submitCommentFormBtn.addEventListener('click', (e) => {
+      e.preventDefault()
+      submitCommentForm.bind(null, commentId)()
+    })
+  }
+
+  function parentCommentForm() {
+    submitCommentFormBtn.addEventListener('click', (e) => {
+      e.preventDefault()
+      submitCommentForm.bind(null)()
+    })
+
+  }
+
+  function submitCommentForm(commentId) {
+    let comment = document.getElementById("comment").value
+    const postId = "{{ post.id }}"
+
+
+    fetch("/api/addcomment/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrf,
+      },
+      body: JSON.stringify({ form: { parent: commentId, content: comment, post: postId } }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        document.querySelector('.mt-5').insertAdjacentHTML('afterend',
+          `
+            <div class="media mb-4"><img
+              class="avatar avatar-lg mr-4"
+              src="https://w7.pngwing.com/pngs/831/88/png-transparent-user-profile-computer-icons-user-interface-mystique-miscellaneous-user-interface-design-smile.png"
+            >
+              <div class="media-body">
+                <h5>{{ request.user.username }}</h5>
+                <p class="text-uppercase text-sm text-muted">
+                  <i class="far fa-clock"></i> Just now
+                </p>
+
+                <p class="text-muted">${comment}</p>
+
+                <p>
+                  <span
+                    class="btn btn-link disabled"
+                    id="replyBtn"
+                  ><i class="fa fa-reply"></i> Reply
+                  </span>
+              </p>
+              </div>
+            </div>
+          `
+        )
+
+        comment = ''
+      })
+      .catch((error) => console.log(error))
+
+  }
+</script>
+{% endblock %}
