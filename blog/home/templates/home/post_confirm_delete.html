@@ -1,0 +1,21 @@
+{% extends 'home/base.html' %}
+
+
+{% block start %}
+<div class="container">
+  <form
+    method="POST"
+    class="mt-5 pt-5 pb-5"
+  >
+    <div class="row">
+      <div class="col-md-12">
+        {% csrf_token %}
+        <p>Are you sure you want to delete "{{ object }}"?</p>
+
+      </div>
+    </div>
+    <button class="btn btn-danger" type="submit">Delete</button>
+    <a class="btn btn-light" href="{% url 'user_posts' %}">Back</a>
+  </form>
+</div>
+{% endblock %}

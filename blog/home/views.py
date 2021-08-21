@@ -1,20 +1,34 @@
+import datetime
 import json
 
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
-from django.http.response import HttpResponse, JsonResponse
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http.response import Http404, HttpResponseRedirect
 from django.shortcuts import redirect, render
+from django.views.generic import DetailView, ListView
+from django.views.generic.edit import DeleteView, FormView, UpdateView
 
 from .forms import BlogForm, NewCommentForm
+from .helpers import generate_unique_slug
 from .models import BlogModel, Comment, Profile
 
 
-def home(request):
-    context = {
-        'posts': BlogModel.objects.order_by('-updated_at').filter(is_draft=False),
-        'featured_post': BlogModel.objects.filter(featured=True).last()
-    }
-    return render(request, 'home/home.html', context)
+class Home(ListView):
+    template_name = 'home/home.html'
+    queryset = BlogModel.objects.all()
+    context_object_name = 'posts'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.order_by('-updated_at').filter(is_draft=False)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['featured_post'] = BlogModel.objects.filter(
+            featured=True).last()
+
+        return context
 
 
 def login_view(request):
@@ -31,37 +45,30 @@ def logout_view(request):
     return redirect('/')
 
 
-@login_required
-def add_post(request):
-    try:
-        if request.method == "POST":
-            form = BlogForm(request.POST, request.FILES)
-            image = request.FILES['image']
-            title = request.POST.get('title')
+class AddPost(LoginRequiredMixin, FormView):
+    form_class = BlogForm
+    template_name = 'home/add_post.html'
+    success_url = '/'
 
-            description = request.POST.get('description')
-            user = request.user
+    def form_valid(self, form):
+        form_cd = form.cleaned_data
+        data = self.request.POST
+        form.save(commit=False)
 
-            if form.is_valid():
-                content = form.cleaned_data['content']
+        post_obj = BlogModel.objects.create(
+            user=self.request.user,
+            title=data['title'],
+            description=data['description'],
+            image=self.request.FILES['image'],
+            content=form_cd['content'],
+            is_draft=form_cd['is_draft'],
+            featured=form_cd['featured']
+        )
 
-            post_obj = BlogModel.objects.create(
-                user=user,
-                title=title,
-                description=description,
-                image=image,
-                content=content
-            )
+        return HttpResponseRedirect(self.get_success_url())
 
-            return redirect('/')
-        else:
-            form = BlogForm()
-    except Exception as e:
-        print(e)
-    context = {
-        'form': form
-    }
-    return render(request, 'home/add_post.html', context)
+    def form_invalid(self, form):
+        print('Form is invalid!')
 
 
 def post_detail(request, slug):
@@ -82,74 +89,58 @@ def post_detail(request, slug):
     return render(request, 'home/post_detail.html', context)
 
 
-@login_required
-def user_posts(request):
-    try:
-        posts = BlogModel.objects.filter(
-            user=request.user).order_by('-updated_at')
-    except Exception as e:
-        print(e)
+class UserPosts(LoginRequiredMixin, ListView):
+    template_name = 'home/user_posts.html'
+    context_object_name = 'posts'
+    queryset = BlogModel.objects.all()
 
-    context = {
-        'posts': posts
-    }
-
-    return render(request, 'home/user_posts.html', context)
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(user=self.request.user)
 
 
-@login_required
-def post_update(request, slug):
-    try:
-        post = BlogModel.objects.filter(slug=slug).first()
-        form = BlogForm(initial={'content': post.content})
+class PostUpdate(LoginRequiredMixin, UpdateView):
+    form_class = BlogForm
+    template_name = 'home/update_post.html'
+    queryset = BlogModel.objects.all()
+    context_object_name = 'post'
+    slug_field = 'slug'
+    slug_url_kwarg = 'slug'
 
-        if request.method == 'POST':
-            form = BlogForm(request.POST, request.FILES,
-                            initial={'content': post.content})
-            image = request.FILES['image']
-            title = request.POST.get('title')
-            description = request.POST.get('description')
-            user = request.user
+    def form_valid(self, form):
+        form_cd = form.cleaned_data
+        data = self.request.POST
+        post_obj = self.get_object()
 
-            if form.is_valid():
-                content = form.cleaned_data['content']
-                featured = form.cleaned_data['featured']
+        post_obj.title = data['title']
+        post_obj.description = data['description']
+        post_obj.image = self.request.FILES['image']
+        post_obj.featured = form_cd['featured']
+        post_obj.is_draft = form_cd['is_draft']
+        post_obj.content = form_cd['content']
 
-            post.title = title
-            post.description = description
-            post.image = image
-            post.featured = featured
-            post.content = content
+        if post_obj.user != self.request.user:
+            return redirect('/')
 
-            if post.user != request.user:
-                return redirect('/')
+        post_obj.save()
 
-            post.save()
+        return HttpResponseRedirect(post_obj.get_absolute_url())
 
-            return redirect('post_detail', slug=post.slug)
-
-    except Exception as e:
-        print(e)
-
-    context = {
-        'post': post,
-        'form': form
-    }
-
-    return render(request, 'home/update_post.html', context)
+    def form_invalid(self, form):
+        print('Form is invalid!')
 
 
-@login_required
-def post_delete(request, id):
-    try:
-        post = BlogModel.objects.get(id=id)
-        if post.user == request.user:
-            post.delete()
+class PostDelete(LoginRequiredMixin, DeleteView):
+    pk_url_kwarg = 'id'
+    model = BlogModel
+    success_url = '/'
+    template_name = 'home/post_confirm_delete.html'
 
-    except Exception as e:
-        print(e)
-
-    return redirect('user_posts')
+    def get_object(self, queryset=None):
+        obj = super(PostDelete, self).get_object()
+        if not obj.user == self.request.user:
+            raise Http404
+        return obj
 
 
 def verify(request, token):

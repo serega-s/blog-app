@@ -1,3 +1,4 @@
+from django.urls import reverse
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils.text import slugify
@@ -28,9 +29,22 @@ class BlogModel(models.Model):
         return self.title
 
     def save(self, *args, **kwargs):
-        from .helpers import generate_slug
-        self.slug = generate_slug(self.title)
+        if self.slug == None:
+            slug = slugify(self.title)
+
+            has_slug = BlogModel.objects.filter(slug=slug).exists()
+            count = 1
+
+            while has_slug:
+                count += 1
+                slug = slugify(self.title) + '-' + str(count)
+                has_slug = BlogModel.objects.filter(slug=slug).exists()
+
+            self.slug = slug
         super(BlogModel, self).save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse('post_detail', kwargs={'slug': self.slug})
 
 
 class Comment(MPTTModel):
