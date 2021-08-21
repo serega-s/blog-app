@@ -1,17 +1,13 @@
-import datetime
-import json
-
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http.response import Http404, HttpResponseRedirect
 from django.shortcuts import redirect, render
-from django.views.generic import DetailView, ListView
+from django.views.generic import ListView
 from django.views.generic.edit import DeleteView, FormView, UpdateView
 
-from .forms import BlogForm, NewCommentForm
-from .helpers import generate_unique_slug
-from .models import BlogModel, Comment, Profile
+from .forms import BlogForm
+from .models import BlogModel, Profile
 
 
 class Home(ListView):
