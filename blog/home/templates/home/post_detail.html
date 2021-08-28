@@ -13,6 +13,7 @@
     </div>
   </div>
 </section>
+
 <section>
   <div class="container">
     <div class="row">
@@ -24,21 +25,44 @@
             ></a> Written by <a
             class="font-weight-bold"
             href="#"
-          >{{ post.user.username }}</a><span class="mx-1">|</span> {{ post.updated_at|naturalday }}<span
-            class="mx-1">|</span><a
-            class="text-muted"
-            href="#"
-          >{{ post.viewed }} views</a></p>
+          >{{ post.user.username }}</a><span class="mx-1">|</span>
+          {{ post.created_at|naturalday }}<span class="mx-1">|</span>
+          {{ post.viewed }} views<span class="mx-1">|</span>
+          {{ post.likes.count }} likes
+        </p>
         <p class="lead mb-5">{{ post.description }}</p>
       </div>
     </div>
+    
     <div class="row">
       <div class="col-xl-8 col-lg-10 mx-auto">
         <div class="text-content">
           {{ post.content|safe }}
+
           <hr />
         </div>
-        <!-- comments-->
+        <div
+          class="m-1"
+          style="font-size: 20px;cursor: pointer;"
+        >
+          <span onclick="likePost()">
+            {% if post.liked %}
+            <i
+              id="like-button-{{post.id}}"
+              class="fas fa-thumbs-up"
+            ></i>
+            {% else %}
+            <i
+              id="like-button-{{post.id}}"
+              class="far fa-thumbs-up"
+            ></i>
+            {% endif %}
+
+          </span>
+          |
+          <span id="likes-count-{{post.id}}">{{ post.likes.count }}</span> likes
+        </div>
+        
         <div class="mt-5">
           {% load mptt_tags %}
           <h6 class="text-uppercase text-muted mb-4">{{ allcomments|length }} comments</h6>
@@ -146,16 +170,11 @@
 
 <script>
   const submitCommentFormBtn = document.getElementById('submitCommentFormBtn')
-  function childrenCommentForm(commentId) {
+  const postId = '{{ post.id }}'
 
+  function childrenCommentForm(commentId) {
     window.scrollTo(0, document.body.scrollHeight)
     document.getElementById('leaveComment').classList.toggle('show')
-
-    // if (isChildren == "True") {
-    //   isChildren = true
-    // } else if (isChildren == "False") {
-    //   isChildren = false
-    // }
 
     submitCommentFormBtn.addEventListener('click', (e) => {
       e.preventDefault()
@@ -173,8 +192,6 @@
 
   function submitCommentForm(commentId) {
     let comment = document.getElementById("comment").value
-    const postId = "{{ post.id }}"
-
 
     fetch("/api/addcomment/", {
       method: "POST",
@@ -182,7 +199,7 @@
         "Content-Type": "application/json",
         "X-CSRFToken": csrf,
       },
-      body: JSON.stringify({ form: { parent: commentId, content: comment, post: postId } }),
+      body: JSON.stringify({ parent: commentId, content: comment, post_id: postId }),
     })
       .then((response) => response.json())
       .then((data) => {
@@ -213,9 +230,35 @@
         )
 
         comment = ''
+        console.log(data)
       })
       .catch((error) => console.log(error))
 
+  }
+
+  function likePost() {
+    const likesCount = document.getElementById(`likes-count-${postId}`)
+    const likeButton = document.getElementById(`like-button-${postId}`)
+
+    fetch('/api/addlike/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrf
+      },
+      body: JSON.stringify({ post_id: postId })
+    })
+      .then(response => response.json())
+      .then(data => {
+        likesCount.innerHTML = data["likes"]
+        console.log(data)
+
+        if (data["liked"]) {
+          likeButton.className = "fas fa-thumbs-up"
+        } else {
+          likeButton.className = "far fa-thumbs-up"
+        }
+      })
   }
 </script>
 {% endblock %}

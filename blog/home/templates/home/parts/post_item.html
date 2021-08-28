@@ -22,10 +22,12 @@
       >{{ post.title }}</a>
     </h5>
     <p class="text-gray-500 text-sm my-3">
-      <i class="far fa-clock mr-2"></i>{{ post.updated_at|naturalday }}
+      <i class="far fa-clock mr-2"></i>{{ post.created_at|naturalday }}
       <span class="mx-1">|</span>{{ post.viewed }} views {% if post.is_draft %}<span class="mx-1">|</span>
       <span class="fw-bold text-dark">DRAFT</span>
       {% endif %}
+      <span class="mx-1">|</span>
+      {{ post.likes.count }} likes
     </p>
 
     <p class="my-2 text-muted text-sm">{{ post.description|truncatewords:15|safe }}</p>
@@ -50,3 +52,7 @@
     {% endif %}
   </div>
 </div>
+
+<script>
+
+</script>

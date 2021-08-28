@@ -1,3 +1,5 @@
+import json
+
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -7,20 +9,23 @@ from django.views.generic import ListView
 from django.views.generic.edit import DeleteView, FormView, UpdateView
 
 from .forms import BlogForm
-from .models import BlogModel, Profile
+from .models import BlogModel, Like, Profile
 
 
 class Home(ListView):
     template_name = 'home/home.html'
     queryset = BlogModel.objects.all()
     context_object_name = 'posts'
+    ordering = ['-created_at']
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        return queryset.order_by('-updated_at').filter(is_draft=False)
+
+        return queryset.filter(is_draft=False)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
         context['featured_post'] = BlogModel.objects.filter(
             featured=True).last()
 
@@ -70,16 +75,25 @@ class AddPost(LoginRequiredMixin, FormView):
 def post_detail(request, slug):
     try:
         post = BlogModel.objects.filter(slug=slug).first()
+
         allcomments = post.comments.filter(status=True)
 
         post.viewed += 1
         post.save()
+
+        likes = post.likes.filter(created_by__id=request.user.id)
+
+        if likes.count() > 0:
+            post.liked = True
+        else:
+            post.liked = False
+
     except Exception as e:
         print(e)
 
     context = {
         'post': post,
-        'allcomments': allcomments
+        'allcomments': allcomments,
     }
 
     return render(request, 'home/post_detail.html', context)
@@ -89,9 +103,11 @@ class UserPosts(LoginRequiredMixin, ListView):
     template_name = 'home/user_posts.html'
     context_object_name = 'posts'
     queryset = BlogModel.objects.all()
+    ordering = ['-created_at']
 
     def get_queryset(self):
         queryset = super().get_queryset()
+
         return queryset.filter(user=self.request.user)
 
 
